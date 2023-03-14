@@ -25,6 +25,22 @@ int stdio_init()
 }
 
 /*! Formated output to console (lightweight version of 'printf') */
+int PRINTF(char *format, ...)
+{
+	char text[CONSOLE_MAXLEN];
+
+	vssprintf(text, CONSOLE_MAXLEN, &format);
+
+	for (int i = 0; i < strlen(text); i++) {
+		if (text[i] >= 'a' && text[i] <= 'z') {
+			text[i] -= ('a' - 'A');
+		}
+	}
+
+	return u_stdout->print(text);
+}
+
+/*! Formated output to console (lightweight version of 'printf') */
 int printf(char *format, ...)
 {
 	char text[CONSOLE_MAXLEN];
