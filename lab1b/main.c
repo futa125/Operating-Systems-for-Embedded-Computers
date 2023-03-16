@@ -2,6 +2,7 @@
 #include "trig.h"
 #include "arith.h"
 #include "bin.h"
+#include "lab1y.h"
 
 int main() {
     printf("Cos of 60 degrees: %.2f\n", cosdeg(60));
@@ -14,4 +15,8 @@ int main() {
     printf("\n");
     printf("Binary AND of 136 and 93: %d\n", binand(136, 93));
     printf("Binary OR of 136 and 93: %d\n", binor(136, 93));
+
+    lab1y();
+
+    return 0;
 }

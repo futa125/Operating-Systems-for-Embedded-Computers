@@ -1,4 +1,4 @@
-trig.o: add.o sub.o mul.o div.o
+arith.o: add.o sub.o mul.o div.o
 	ld -r add.o sub.o mul.o div.o -o arith.o
 add.o: add.c arith.h
 sub.o: sub.c arith.h
