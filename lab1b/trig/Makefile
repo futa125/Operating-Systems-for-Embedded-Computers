@@ -1,4 +1,4 @@
-CFLAGS = -Ideg
+CFLAGS = -Ideg -I .
 
 trig.o: sin.o cos.o deg/deg.o
 	ld -r sin.o cos.o deg/deg.o -o trig.o

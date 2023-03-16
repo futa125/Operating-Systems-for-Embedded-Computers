@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
-#include "lab1y.h"
+#include <time.h>
+#include <lab1y.h>
 
 void lab1y() {
     int x = time(NULL);

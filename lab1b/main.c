@@ -1,8 +1,8 @@
 #include <stdio.h>
-#include "trig.h"
-#include "arith.h"
-#include "bin.h"
-#include "lab1y.h"
+#include <trig.h>
+#include <arith.h>
+#include <bin.h>
+#include <lab1y.h>
 
 int main() {
     printf("Cos of 60 degrees: %.2f\n", cosdeg(60));
