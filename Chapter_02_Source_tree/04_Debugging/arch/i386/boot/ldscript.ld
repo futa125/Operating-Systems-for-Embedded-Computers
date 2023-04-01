@@ -40,7 +40,7 @@ SECTIONS {
 	size_data = SIZEOF(.data);
 
 	.stack STACK_END_ADDRESS - STACK_SIZE :
-    {
+	{
 		*(.stack)
     }
 
