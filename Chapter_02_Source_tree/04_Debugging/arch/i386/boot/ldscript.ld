@@ -4,29 +4,45 @@
 
 ENTRY(arch_startup)
 
+STACK_END_ADDRESS = 0x800000;
+
 SECTIONS {
 	.code LOAD_ADDR :
 	{
-		kernel_code_addr = .;
-
 		/* instructions */
 		*?/boot/startup.asm.o ( .text* )
-
-		*( .text* )
+		*?/boot/premjesti.o ( .text* ) 	
 	}
-	.data :
+	size_code = SIZEOF(.code);
+
+	instr_RAM = 0x200000;
+	instr_ROM = LOAD_ADDR + size_code;
+	.instrukcije instr_RAM : AT (instr_ROM)
 	{
-		kernel_data_addr = .;
-
-		/* read only data (constants), initialized global variables */
-		* ( .rodata* .data* )
+		*( .text* );
 	}
-	.bss :
+	size_instr = SIZEOF(.instrukcije);
+
+	constants_RAM = 0x300000;
+	constants_ROM = instr_ROM + size_instr;
+	.constants constants_RAM : AT (constants_ROM)
 	{
-		*( .bss* COMMON* )
-
-		. = ALIGN (4096);
+		* ( .rodata* )
 	}
+	size_constants = SIZEOF(.constants);
+
+	data_RAM = 0x400000;
+	data_ROM = constants_ROM + size_constants;
+	.data data_RAM : AT (data_ROM)
+	{
+		* ( .data* .bss* COMMON* )
+	}
+	size_data = SIZEOF(.data);
+
+	.stack STACK_END_ADDRESS - STACK_SIZE :
+    {
+		*(.stack)
+    }
 
 	/*
 	 * what with other sections generated with gcc (various versions)?
@@ -37,6 +53,7 @@ SECTIONS {
 	 *   multiboot loader (QEMU is that)
 	 */
 
+/DISCARD/ : { *(.eh_frame*) }
 #ifndef DEBUG
 	/DISCARD/ : { *(*) }
 #endif
