@@ -42,7 +42,7 @@ SECTIONS {
 	.stack STACK_END_ADDRESS - STACK_SIZE :
 	{
 		*(.stack)
-    }
+	}
 
 	/*
 	 * what with other sections generated with gcc (various versions)?
