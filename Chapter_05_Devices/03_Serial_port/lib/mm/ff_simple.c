@@ -7,6 +7,18 @@
 #include ASSERT_H
 #endif
 
+int count_free(ffs_mpool_t* mpool) {
+	int count = 0;
+	ffs_hdr_t* chunk = mpool->first;
+
+	while (chunk != NULL) {
+		count++;
+		chunk = chunk->next;
+	}
+
+	return count;
+}
+
 /*!
  * Initialize dynamic memory manager
  * \param mem_segm Memory pool start address
@@ -60,7 +72,7 @@ void *ffs_init(void *mem_segm, size_t size)
  */
 void *ffs_alloc(ffs_mpool_t *mpool, size_t size)
 {
-	ffs_hdr_t *iter, *chunk;
+	ffs_hdr_t *iter, *chunk, *before, *after;
 
 	ASSERT(mpool);
 
@@ -72,8 +84,34 @@ void *ffs_alloc(ffs_mpool_t *mpool, size_t size)
 	ALIGN_FW(size);
 
 	iter = mpool->first;
-	while (iter != NULL && iter->size < size)
-		iter = iter->next;
+	while (iter != NULL && iter->size < size) {
+		before = ((void *) iter) - sizeof(size_t);
+		while (iter->size < size && CHECK_FREE(before)) {
+			printf("(%d) <- ", before->size);
+			before = GET_HDR(before);
+			ffs_remove_chunk(mpool, before);
+			before->size += iter->size;
+			iter = before;
+        	before = ((void *) iter) - sizeof(size_t);
+		}
+
+		printf("HEAD (%d)", mpool->first->size);
+
+		after = GET_AFTER(iter);
+		while (iter->size < size && CHECK_FREE(after))
+		{
+			printf(" -> (%d)", after->size);
+			ffs_remove_chunk(mpool, after);
+			iter->size += after->size;
+			after = GET_AFTER(iter);
+		}
+
+		printf(", Total: %d\n", iter->size);
+
+		if (iter->size < size) {
+			iter = iter->next;
+		}
+	}
 
 	if (iter == NULL)
 		return NULL; /* no adequate free chunk found */
@@ -118,23 +156,31 @@ int ffs_free(ffs_mpool_t *mpool, void *chunk_to_be_freed)
 
 	MARK_FREE(chunk); /* mark it as free */
 
-	/* join with left? */
-	before = ((void *) chunk) - sizeof(size_t);
-	if (CHECK_FREE(before))
-	{
-		before = GET_HDR(before);
-		ffs_remove_chunk(mpool, before);
-		before->size += chunk->size; /* join */
-		chunk = before;
-	}
+	if (count_free(mpool) > 5) {
+		before = ((void *) chunk) - sizeof(size_t);
+		if (CHECK_FREE(before))
+		{
+			printf("(%d) <- ", before->size);
+			before = GET_HDR(before);
+			ffs_remove_chunk(mpool, before);
+			before->size += chunk->size;
+			chunk = before;
+			before = ((void *) chunk) - sizeof(size_t);
+		}
 
-	/* join with right? */
-	after = GET_AFTER(chunk);
-	if (CHECK_FREE(after))
-	{
-		ffs_remove_chunk(mpool, after);
-		chunk->size += after->size; /* join */
-	}
+		printf("HEAD (%d)", ((ffs_hdr_t*) (chunk_to_be_freed - sizeof(size_t)))->size);
+
+		after = GET_AFTER(chunk);
+		if (CHECK_FREE(after))
+		{
+			printf(" -> (%d)", after->size);
+			ffs_remove_chunk(mpool, after);
+			chunk->size += after->size;
+			after = GET_AFTER(chunk);
+		}
+
+		printf(", Total: %d\n", chunk->size);
+    }
 
 	/* insert chunk in free list */
 	ffs_insert_chunk(mpool, chunk);
