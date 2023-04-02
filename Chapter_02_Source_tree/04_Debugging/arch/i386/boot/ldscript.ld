@@ -9,31 +9,30 @@ STACK_END_ADDRESS = 0x800000;
 SECTIONS {
 	.code LOAD_ADDR :
 	{
-		/* instructions */
 		*?/boot/startup.asm.o ( .text* )
 		*?/boot/premjesti.o ( .text* ) 	
 	}
 	size_code = SIZEOF(.code);
 
-	instr_RAM = 0x200000;
-	instr_ROM = LOAD_ADDR + size_code;
-	.instrukcije instr_RAM : AT (instr_ROM)
+	instructions_relocate = 0x200000;
+	instructions_load = LOAD_ADDR + size_code;
+	.instructions instructions_relocate : AT (instructions_load)
 	{
 		*( .text* );
 	}
-	size_instr = SIZEOF(.instrukcije);
+	size_instructions = SIZEOF(.instructions);
 
-	constants_RAM = 0x300000;
-	constants_ROM = instr_ROM + size_instr;
-	.constants constants_RAM : AT (constants_ROM)
+	constants_relocate = 0x300000;
+	constants_load = instructions_load + size_instructions;
+	.constants constants_relocate : AT (constants_load)
 	{
 		* ( .rodata* )
 	}
 	size_constants = SIZEOF(.constants);
 
-	data_RAM = 0x400000;
-	data_ROM = constants_ROM + size_constants;
-	.data data_RAM : AT (data_ROM)
+	data_relocate = 0x400000;
+	data_load = constants_load + size_constants;
+	.data data_relocate : AT (data_load)
 	{
 		* ( .data* .bss* COMMON* )
 	}
@@ -54,6 +53,7 @@ SECTIONS {
 	 */
 
 /DISCARD/ : { *(.eh_frame*) }
+
 #ifndef DEBUG
 	/DISCARD/ : { *(*) }
 #endif

@@ -8,10 +8,10 @@ void copy(char* to, char* from, size_t size_d) {
 
 void premjesti (void) 
 {
-	extern size_t size_instr, size_constants, size_data;
-	extern char instr_RAM, instr_ROM, constants_ROM, constants_RAM, data_ROM, data_RAM;
+	extern size_t size_instructions, size_constants, size_data;
+	extern char instructions_relocate, instructions_load, constants_relocate, constants_load, data_relocate, data_load;
 
-	copy(&instr_RAM, &instr_ROM, (size_t) &size_instr);
-	copy(&constants_RAM, &constants_ROM, (size_t) &size_constants);
-	copy(&data_RAM, &data_ROM, (size_t) &size_data);
+	copy(&instructions_relocate, &instructions_load, (size_t) &size_instructions);
+	copy(&constants_relocate, &constants_load, (size_t) &size_constants);
+	copy(&data_relocate, &data_load, (size_t) &size_data);
 }
