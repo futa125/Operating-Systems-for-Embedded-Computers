@@ -7,6 +7,19 @@
 #include ASSERT_H
 #endif
 
+void print_free_chunks(ffs_mpool_t* mpool) {
+	ffs_hdr_t* chunk = mpool->first;
+
+    printf("Free chunks: ");
+
+	while (chunk != NULL) {
+		printf("(%d) -> ", chunk->size);
+		chunk = chunk->next;
+	}
+
+    printf("(NULL)\n");
+}
+
 int count_free(ffs_mpool_t* mpool) {
 	int count = 0;
 	ffs_hdr_t* chunk = mpool->first;
@@ -17,6 +30,22 @@ int count_free(ffs_mpool_t* mpool) {
 	}
 
 	return count;
+}
+
+ffs_hdr_t* merge_right(ffs_mpool_t* mpool, ffs_hdr_t* after, ffs_hdr_t* chunk) {
+    ffs_remove_chunk(mpool, after);
+	chunk->size += after->size;
+
+    return chunk;
+}
+
+ffs_hdr_t* merge_left(ffs_mpool_t* mpool, ffs_hdr_t* before, ffs_hdr_t* chunk) {
+    before = GET_HDR(before);
+	ffs_remove_chunk(mpool, before);
+	before->size += chunk->size;
+	chunk = before;
+
+    return chunk;
 }
 
 /*!
@@ -85,33 +114,30 @@ void *ffs_alloc(ffs_mpool_t *mpool, size_t size)
 
 	iter = mpool->first;
 	while (iter != NULL && iter->size < size) {
-		before = ((void *) iter) - sizeof(size_t);
-		while (iter->size < size && CHECK_FREE(before)) {
-			printf("(%d) <- ", before->size);
-			before = GET_HDR(before);
-			ffs_remove_chunk(mpool, before);
-			before->size += iter->size;
-			iter = before;
-        	before = ((void *) iter) - sizeof(size_t);
-		}
+        printf("Merging: ");
 
-		printf("HEAD (%d)", mpool->first->size);
+        before = GET_BEFORE(iter);
+        while (iter->size < size && CHECK_FREE(before)) {
+            printf("(%d) <- ", before->size);
+            iter = merge_left(mpool, before, iter);
+            before = GET_BEFORE(iter);
+        }
 
-		after = GET_AFTER(iter);
-		while (iter->size < size && CHECK_FREE(after))
-		{
-			printf(" -> (%d)", after->size);
-			ffs_remove_chunk(mpool, after);
-			iter->size += after->size;
-			after = GET_AFTER(iter);
-		}
+        printf("(%d)", mpool->first->size);
 
-		printf(", Total: %d\n", iter->size);
+        after = GET_AFTER(iter);
+        while (iter->size < size && CHECK_FREE(after)) {
+            printf(" -> (%d)", after->size);
+            iter = merge_right(mpool, after, iter);
+            after = GET_AFTER(iter);
+        }
 
-		if (iter->size < size) {
-			iter = iter->next;
-		}
-	}
+        printf("\n");
+
+        if (iter->size < size) {
+            iter = iter->next;
+        }
+    }
 
 	if (iter == NULL)
 		return NULL; /* no adequate free chunk found */
@@ -136,6 +162,8 @@ void *ffs_alloc(ffs_mpool_t *mpool, size_t size)
 	MARK_USED(chunk);
 	CLONE_SIZE_TO_TAIL(chunk);
 
+    print_free_chunks(mpool);
+
 	return ((void *) chunk) + sizeof(size_t);
 }
 
@@ -156,30 +184,24 @@ int ffs_free(ffs_mpool_t *mpool, void *chunk_to_be_freed)
 
 	MARK_FREE(chunk); /* mark it as free */
 
-	if (count_free(mpool) > 5) {
-		before = ((void *) chunk) - sizeof(size_t);
-		if (CHECK_FREE(before))
-		{
-			printf("(%d) <- ", before->size);
-			before = GET_HDR(before);
-			ffs_remove_chunk(mpool, before);
-			before->size += chunk->size;
-			chunk = before;
-			before = ((void *) chunk) - sizeof(size_t);
-		}
+	if (count_free(mpool) >= 6) {
+        printf("Merging: ");
 
-		printf("HEAD (%d)", ((ffs_hdr_t*) (chunk_to_be_freed - sizeof(size_t)))->size);
+		before = GET_BEFORE(chunk);
+        if (CHECK_FREE(before)) {
+            printf("(%d) <- ", before->size);
+            chunk = merge_left(mpool, before, chunk);
+        }
 
-		after = GET_AFTER(chunk);
-		if (CHECK_FREE(after))
-		{
-			printf(" -> (%d)", after->size);
-			ffs_remove_chunk(mpool, after);
-			chunk->size += after->size;
-			after = GET_AFTER(chunk);
-		}
+        printf("(%d)", ((ffs_hdr_t*)(chunk_to_be_freed - sizeof(size_t)))->size);
 
-		printf(", Total: %d\n", chunk->size);
+        after = GET_AFTER(chunk);
+        if (CHECK_FREE(after)) {
+            printf(" -> (%d)", after->size);
+            chunk = merge_right(mpool, after, chunk);
+        }
+
+        printf("\n");
     }
 
 	/* insert chunk in free list */
@@ -187,6 +209,8 @@ int ffs_free(ffs_mpool_t *mpool, void *chunk_to_be_freed)
 
 	/* set chunk tail */
 	CLONE_SIZE_TO_TAIL(chunk);
+
+    print_free_chunks(mpool);
 
 	return 0;
 }

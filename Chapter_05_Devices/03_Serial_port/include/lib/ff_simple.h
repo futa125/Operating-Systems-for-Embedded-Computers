@@ -61,6 +61,7 @@ ffs_mpool_t;
 #define GET_SIZE(HDR)	((HDR)->size & ~1)
 
 #define GET_AFTER(HDR)	(((void *)(HDR)) +  GET_SIZE(HDR))
+#define GET_BEFORE(HDR)	(((void *)(HDR)) - sizeof(size_t))
 #define GET_TAIL(HDR)	(GET_AFTER(HDR) - sizeof(ffs_tail_t))
 #define GET_HDR(TAIL)	(((void *)(TAIL)) - GET_SIZE(TAIL) + sizeof(ffs_tail_t))
 
