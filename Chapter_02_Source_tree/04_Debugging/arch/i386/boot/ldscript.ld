@@ -22,7 +22,7 @@ SECTIONS {
 	}
 	size_instructions = SIZEOF(.instructions);
 
-	constants_relocate = 0x300000;
+	constants_relocate = instructions_relocate + size_instructions;
 	constants_load = instructions_load + size_instructions;
 	.constants constants_relocate : AT (constants_load)
 	{
@@ -30,7 +30,7 @@ SECTIONS {
 	}
 	size_constants = SIZEOF(.constants);
 
-	data_relocate = 0x400000;
+	data_relocate = constants_relocate + size_constants;
 	data_load = constants_load + size_constants;
 	.data data_relocate : AT (data_load)
 	{
