@@ -7,6 +7,17 @@
 #include ASSERT_H
 #endif
 
+void print_free_chunks(ffs_mpool_t* mpool) {
+	ffs_hdr_t* chunk = mpool->first;
+
+	while (chunk != NULL) {
+		printf("(%d) -> ", chunk->size);
+		chunk = chunk->next;
+	}
+
+	printf("(NULL)\n");
+}
+
 /*!
  * Initialize dynamic memory manager
  * \param mem_segm Memory pool start address
@@ -70,10 +81,29 @@ void *ffs_alloc(ffs_mpool_t *mpool, size_t size)
 
 	/* align request size to higher 'size_t' boundary */
 	ALIGN_FW(size);
-
+	
 	iter = mpool->first;
-	while (iter != NULL && iter->size < size)
+	size_t found_first = 0;
+	ffs_hdr_t* first;
+	size_t skip_count = 0;
+
+	while (iter->size != size) {
+		if (skip_count >= 5) {
+			iter = first;
+			break;
+		}
+
+		if (iter->size > size) {
+			if (!found_first) {
+				found_first = 1;
+				first = iter;
+			}
+
+			skip_count++;
+		}
+
 		iter = iter->next;
+	}
 
 	if (iter == NULL)
 		return NULL; /* no adequate free chunk found */
@@ -98,6 +128,8 @@ void *ffs_alloc(ffs_mpool_t *mpool, size_t size)
 	MARK_USED(chunk);
 	CLONE_SIZE_TO_TAIL(chunk);
 
+	print_free_chunks(mpool);
+
 	return ((void *) chunk) + sizeof(size_t);
 }
 
@@ -109,7 +141,7 @@ void *ffs_alloc(ffs_mpool_t *mpool, size_t size)
  */
 int ffs_free(ffs_mpool_t *mpool, void *chunk_to_be_freed)
 {
-	ffs_hdr_t *chunk, *before, *after;
+	ffs_hdr_t *chunk;
 
 	ASSERT(mpool && chunk_to_be_freed);
 
@@ -118,29 +150,13 @@ int ffs_free(ffs_mpool_t *mpool, void *chunk_to_be_freed)
 
 	MARK_FREE(chunk); /* mark it as free */
 
-	/* join with left? */
-	before = ((void *) chunk) - sizeof(size_t);
-	if (CHECK_FREE(before))
-	{
-		before = GET_HDR(before);
-		ffs_remove_chunk(mpool, before);
-		before->size += chunk->size; /* join */
-		chunk = before;
-	}
-
-	/* join with right? */
-	after = GET_AFTER(chunk);
-	if (CHECK_FREE(after))
-	{
-		ffs_remove_chunk(mpool, after);
-		chunk->size += after->size; /* join */
-	}
-
 	/* insert chunk in free list */
 	ffs_insert_chunk(mpool, chunk);
 
 	/* set chunk tail */
 	CLONE_SIZE_TO_TAIL(chunk);
+
+	print_free_chunks(mpool);
 
 	return 0;
 }
