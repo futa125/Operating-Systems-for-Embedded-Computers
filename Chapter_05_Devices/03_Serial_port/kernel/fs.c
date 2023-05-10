@@ -177,15 +177,12 @@ int k_fs_close_file(descriptor_t *desc)
 	return 0;
 }
 
-// op = 0 => write, otherwise =>read
-int k_fs_read_write(descriptor_t *desc, void *buffer, size_t size, int op)
-{
-	// desc already checked, use "last_check";
+int k_fs_read_write(descriptor_t *desc, void *buffer, size_t size, int op) {
 	struct kfile_desc *fd = last_check;
 
-	// sanity check
-	if ((op && (fd->flags & O_WRONLY)) || (!op && (fd->flags & O_RDONLY)))
+	if ((op && (fd->flags & O_WRONLY)) || (!op && (fd->flags & O_RDONLY))) {
 		return -EPERM;
+	}
 
 	char buf[ft->block_size];
 
@@ -193,105 +190,60 @@ int k_fs_read_write(descriptor_t *desc, void *buffer, size_t size, int op)
 	kclock_gettime(CLOCK_REALTIME, &t);
 	fd->tfd->ta = t;
 
-	if (op)
-	{
-		// read from offset "fd->fp" to "buffer" "size" bytes
-
-		// possible scenarios: (#=block boundary)
-		// fp % block_size == 0
-		// #|fp|-----------#-----------#
-		//     | size |
-
-		// fp % block_size == 0
-		// #|fp|-----------#-----------#
-		//     |      size     |
-
-		// fp % block_size > 0
-		// #----|fp|-------#-----------#
-		//         |size|
-
-		// fp % block_size > 0
-		// #----|fp|-------#-----------#
-		//         |    size    |
-
-		// start with block x where address fd->fp is (x=fp/bsize)
-		// fd->tfd->block[x] has address of block on disk
-		// read that block and copy data from fd->fp to the end of block
-		// DISK_READ(buf, 1, fd->tfd->block[x]);
-		// which part of buf to buffer? ...
-		// read next block ...
-		// stop when all required data is read or end of the file is reached
-
-		// update "ta", fp
-		// return number of bytes read
-
+	if (op) {
 		size_t todo = size;
 		size_t block_pos = fd->fp / ft->block_size;
-		size_t block_offset = fd->fp % ft->block_size;
-		size_t to = 0;
-		size_t sz = MIN(ft->block_size - block_offset, todo);
+		size_t from_buf = fd->fp % ft->block_size;
+		size_t to_buf = 0;
+		size_t sz = MIN(ft->block_size - from_buf, todo);
 
-		while (todo > 0)
-		{
-			DISK_READ(buf, 1, fd->tfd->block[block_pos]);
+		while (todo > 0) {
+			DISK_READ(buf, 1, fd->tfd->block[block_pos++]);
+			memcpy(buffer + to_buf, buf + from_buf, sz);
 
-			memcpy(buffer + to, buf + block_offset, sz);
-
-			block_offset = 0;
-			to += sz;
-
+			from_buf = 0;
+			to_buf += sz;
 			todo -= sz;
 			fd->fp += sz;
 			sz = MIN(ft->block_size, todo);
-			block_pos++;
 		}
 
 		return size;
-	}
-	else
-	{
-		// assume there is enough space on disk
-
-		// write ...
-		// if ...->block[x] == 0 => find free block on disk
-		// when fp isn't block start, read block from disk first
-		// and then replace fp+ bytes ... and then write block back
-
+		
+	} else {
 		size_t todo = size;
 		size_t block_pos = fd->fp / ft->block_size;
-		size_t block_offset = fd->fp % ft->block_size;
-		size_t to = 0;
+		size_t to_buf = fd->fp % ft->block_size;
+		size_t from_buf = 0;
 		size_t sz = MIN(ft->block_size - fd->fp % ft->block_size, todo);
 
-		while (todo > 0 && fd->fp < ft->block_size * MAXFILEBLOCKS)
-		{
+		while (todo > 0 && fd->fp < ft->block_size * MAXFILEBLOCKS) {
 			size_t b = fd->tfd->block[block_pos];
 
-			if (b == 0)
-			{
-				for (int i = ft_size; i < ft->blocks; i++)
-				{
-					if (ft->free[i])
-					{
+			if (b == 0) {
+				for (int i = ft_size; i < ft->blocks; i++) {
+					if (ft->free[i]) {
 						ft->free[i] = 0;
 						fd->tfd->block[block_pos] = i;
 						b = i;
+
 						break;
 					}
 				}
 			}
 
+			block_pos++;
+
 			DISK_READ(buf, 1, b);
-			memcpy(buf + block_offset, buffer + to, sz);
+			memcpy(buf + to_buf, buffer + from_buf, sz);
 			DISK_WRITE(buf, 1, b);
 
-			block_offset = 0;
-			to += sz;
+			to_buf = 0;
+			from_buf += sz;
 
 			todo -= sz;
 			fd->fp += sz;
 			sz = MIN(ft->block_size, todo);
-			block_pos++;
 		}
 
 		fd->tfd->size = MIN(fd->tfd->size, fd->fp);
