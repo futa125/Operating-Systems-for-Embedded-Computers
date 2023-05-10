@@ -4,12 +4,14 @@
 #include "time.h"
 #include "device.h"
 #include "memory.h"
+#include "fs.h"
 #include <kernel/errno.h>
 #include <kernel/features.h>
 #include <arch/interrupt.h>
 #include <arch/processor.h>
 #include <api/stdio.h>
 #include <api/prog_info.h>
+#include <lib/string.h>
 
 char system_info[] = 	OS_NAME ": " NAME_MAJOR ":" NAME_MINOR ", "
 			"Version: " VERSION " (" ARCH ")";
@@ -55,10 +57,43 @@ void k_startup()
 
 	stdio_init(); /* initialize standard input & output devices */
 
+	k_fs_init("DISK", 512, 4096);
+
+	int fd1 = open("file:test1", O_CREAT | O_WRONLY, 0);
+	kprintf("fd1=%d\n", fd1);
+	int fd2 = open("file:test2", O_CREAT | O_WRONLY, 0);
+	kprintf("fd2=%d\n", fd2);
+
+	int retval = write(fd1, "According to all known laws of aviation", 40);
+	kprintf("retval=%d\n", retval);
+	retval = close(fd1);
+	kprintf("retval=%d\n", retval);
+
+	retval = write(fd2, "there is no way a bee should be able to fly.", 45);
+	kprintf("retval=%d\n", retval);
+	retval = close(fd2);
+	kprintf("retval=%d\n", retval);
+
+	fd1 = open("file:test1", O_RDONLY, 0);
+	kprintf("fd1=%d\n", fd1);
+	char buff1[40];
+	retval = read(fd1, buff1, 40);
+	kprintf("retval=%d\n", retval);
+	kprintf("buff1=%s\n", buff1);
+	retval = close(fd1);
+
+	fd2 = open("file:test2", O_RDONLY, 0);
+	kprintf("fd2=%d\n", fd1);
+	char buff2[45];
+	retval = read(fd2, buff2, 45);
+	kprintf("retval=%d\n", retval);
+	kprintf("buff2=%s\n", buff2);
+	retval = close(fd2);
+
 	/* start desired program(s) */
-	hello_world();
-	keyboard();
-	timer();
+	//hello_world();
+	//keyboard();
+	//timer();
 	/* segm_fault(); */
 
 	kprintf("\nSystem halted!\n");
