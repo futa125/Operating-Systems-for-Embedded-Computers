@@ -110,7 +110,12 @@ int timer() {
 	timer_create(CLOCK_MONOTONIC, &evp3, &timer3);
 	timer_settime(&timer3, 0, &t3, NULL);
 
-	while(1) {continue;}
+	while(t.tv_sec < 5) {clock_gettime(CLOCK_MONOTONIC, &t);}
+	t.tv_sec -= 2;
+	
+	clock_settime(CLOCK_REALTIME, &t);
+
+	while(1) {}
 
 	return 0;
 }
