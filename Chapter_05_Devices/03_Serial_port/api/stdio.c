@@ -81,6 +81,11 @@ int close(int fd)
 	return EXIT_SUCCESS;
 }
 
+int rename(char *old_name, char *new_name) {
+	descriptor_t desc;
+	return sys__rename(old_name, new_name, &desc);
+}
+
 /*! Read from device */
 ssize_t read(int fd, void *buffer, size_t count)
 {

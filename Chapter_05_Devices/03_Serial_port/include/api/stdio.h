@@ -5,6 +5,7 @@
 
 int open(char *pathname, int flags, mode_t mode);
 int close(int fd);
+int rename(char *old_name, char *new_name);
 ssize_t read(int fd, void *buffer, size_t count);
 ssize_t write(int fd, void *buffer, size_t count);
 

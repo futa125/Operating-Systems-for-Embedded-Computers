@@ -253,3 +253,7 @@ int k_fs_read_write(descriptor_t *desc, void *buffer, size_t size, int op) {
 
 	return 0;
 }
+
+int k_fs_rename_file(char *old_name, char *new_name, descriptor_t *desc) {
+	return 0;
+}

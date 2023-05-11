@@ -315,6 +315,10 @@ int sys__close(descriptor_t *desc)
 	SYS_EXIT(EXIT_SUCCESS, EXIT_SUCCESS);
 }
 
+int sys__rename(char *old_name, char *new_name, descriptor_t *desc) {
+	return k_fs_rename_file(old_name, new_name, desc);
+}
+
 static int read_write(descriptor_t *desc, void *buffer, size_t size, int op);
 
 int sys__read(descriptor_t *desc, void *buffer, size_t size)

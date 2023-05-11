@@ -90,6 +90,9 @@ void k_startup()
 	kprintf("buff2=%s\n", buff2);
 	retval = close(fd2);
 
+	retval = rename("abc", "bca");
+	kprintf("rename retval=%d\n", retval);
+
 	/* start desired program(s) */
 	//hello_world();
 	//keyboard();
