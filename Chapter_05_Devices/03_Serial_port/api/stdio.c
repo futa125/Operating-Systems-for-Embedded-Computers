@@ -82,8 +82,7 @@ int close(int fd)
 }
 
 int rename(char *old_name, char *new_name) {
-	descriptor_t desc;
-	return sys__rename(old_name, new_name, &desc);
+	return sys__rename(old_name, new_name);
 }
 
 /*! Read from device */
