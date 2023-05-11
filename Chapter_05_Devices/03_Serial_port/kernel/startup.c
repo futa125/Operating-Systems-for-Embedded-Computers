@@ -83,15 +83,18 @@ void k_startup()
 	retval = close(fd1);
 
 	fd2 = open("file:test2", O_RDONLY, 0);
-	kprintf("fd2=%d\n", fd1);
+	kprintf("fd2=%d\n", fd2);
 	char buff2[45];
 	retval = read(fd2, buff2, 45);
 	kprintf("retval=%d\n", retval);
 	kprintf("buff2=%s\n", buff2);
 	retval = close(fd2);
 
-	retval = rename("abc", "bca");
+	retval = rename("test1", "test3");
 	kprintf("rename retval=%d\n", retval);
+
+	int fd3 = open("file:test3", O_RDONLY, 0);
+	kprintf("fd3=%d\n", fd3);
 
 	/* start desired program(s) */
 	//hello_world();
